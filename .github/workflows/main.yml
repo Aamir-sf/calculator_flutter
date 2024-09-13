@@ -1,0 +1,51 @@
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+  push:
+    branches:
+      - main
+      - master
+      - develop
+
+name: "Build & Release"
+
+jobs:
+  build:
+    name: Build & Release
+    runs-on: windows-latest
+    steps:
+      # Checkout the repository
+      - uses: actions/checkout@v3
+
+      # Set up Java JDK
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '11'
+
+      # Set up Flutter
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          architecture: x64
+
+      # Build the Android APK
+      - name: Build APK
+        run: flutter build apk --release --split-per-abi
+
+      # Upload APK as artifact
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: APKs
+          path: build/app/outputs/apk/release/
+
+      # Push to GitHub Releases
+      - name: Push to Releases
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "build/app/outputs/apk/release/*.apk"
+          tag: v1.0.${{ github.run_number }}
+          token: ${{ secrets.TOKEN }}
